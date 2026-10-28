@@ -1,8 +1,3 @@
-> **Dandelion fork.** This is `Dandelion-Science/GLMsingle`, published to our CodeArtifact
-> as `dandelion-glmsingle` (`import glmsingle` as usual) from the `dandelion-v*` branches.
-> See [CHANGELOG.md](./CHANGELOG.md) for what differs from upstream; develop with `uv sync`
-> and `uv run pytest tests`.
-
 # GLMsingle
 
 ![image](https://user-images.githubusercontent.com/35503086/151108958-24479034-c7f7-4734-b903-9046ba6a78ac.png)
