@@ -1,0 +1,41 @@
+name: Check install
+
+on:
+  pull_request:
+
+permissions: {}
+
+jobs:
+  check:
+    permissions:
+      id-token: write
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "latest-known"
+          enable-cache: false
+          python-version: "3.14"
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ vars.ARN_IAM_ROLE_GHA_CORE }}
+      - name: Install glmsingle from the Dandelion index
+        env:
+          CODEARTIFACT_DOMAIN: ${{ vars.CODEARTIFACT_DOMAIN }}
+          CODEARTIFACT_DOMAIN_OWNER: ${{ vars.CODEARTIFACT_DOMAIN_OWNER }}
+          INDEX_URL: ${{ vars.CODEARTIFACT_DANDELION_PYPI_REPOSITORY_URL }}
+        run: |
+          aws codeartifact list-package-versions --domain "$CODEARTIFACT_DOMAIN" \
+            --domain-owner "$CODEARTIFACT_DOMAIN_OWNER" --repository pypi-store \
+            --format pypi --package glmsingle --query 'versions[].[version,status]' --output text
+          TOKEN=$(aws codeartifact get-authorization-token --domain "$CODEARTIFACT_DOMAIN" \
+            --domain-owner "$CODEARTIFACT_DOMAIN_OWNER" --query authorizationToken --output text)
+          echo "::add-mask::$TOKEN"
+          URL="${INDEX_URL%/}"
+          export UV_INDEX_URL="https://aws:${TOKEN}@${URL#https://}/simple/"
+          uv venv
+          uv pip install glmsingle
+          uv run --no-project python -c "import glmsingle, importlib.metadata as m; print('installed glmsingle', m.version('glmsingle'))"
