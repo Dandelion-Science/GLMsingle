@@ -1,0 +1,45 @@
+name: Check publish auth
+
+on:
+  pull_request:
+
+permissions: {}
+
+jobs:
+  check:
+    permissions:
+      id-token: write
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "latest-known"
+          enable-cache: false
+          python-version: "3.14"
+      - run: uv build
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ vars.ARN_IAM_ROLE_GHA_CORE }}
+      - name: CodeArtifact token and read-only checks (no upload)
+        env:
+          CODEARTIFACT_DOMAIN: ${{ vars.CODEARTIFACT_DOMAIN }}
+          CODEARTIFACT_DOMAIN_OWNER: ${{ vars.CODEARTIFACT_DOMAIN_OWNER }}
+          STORE_URL: ${{ vars.CODEARTIFACT_PYPI_STORE_REPOSITORY_URL }}
+        run: |
+          aws sts get-caller-identity --query Arn --output text
+          TOKEN=$(aws codeartifact get-authorization-token --domain "$CODEARTIFACT_DOMAIN" \
+            --domain-owner "$CODEARTIFACT_DOMAIN_OWNER" --query authorizationToken --output text)
+          echo "::add-mask::$TOKEN"
+          echo "token length: ${#TOKEN}"
+          REPO=$(echo "$STORE_URL" | sed -E 's#.*/pypi/([^/]+)/?.*#\1#')
+          echo "store repository: $REPO"
+          aws codeartifact list-package-versions --domain "$CODEARTIFACT_DOMAIN" \
+            --domain-owner "$CODEARTIFACT_DOMAIN_OWNER" --repository "$REPO" \
+            --format pypi --package glmsingle --query 'versions[].version' || echo "glmsingle not in store yet"
+          UV_PUBLISH_USERNAME=aws UV_PUBLISH_PASSWORD="$TOKEN" uv publish --dry-run --publish-url "$STORE_URL"
