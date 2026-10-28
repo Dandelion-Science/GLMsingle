@@ -1,0 +1,8 @@
+changelog:
+  exclude:
+    authors:
+      - autofix-ci[bot]
+      - dependabot[bot]
+      - github-actions[bot]
+      - pre-commit-ci[bot]
+      - dandelion-bot[bot]
