@@ -1,1 +1,2 @@
 include glmsingle/hrf/getcanonicalhrflibrary.tsv
+include requirements.txt
