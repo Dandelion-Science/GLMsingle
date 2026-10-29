@@ -10,7 +10,7 @@ with open('README.md', encoding='utf-8') as readmefile:
 
 setup(
     name='GLMsingle',
-    version='1.2',
+    version='1.2.post2',
     description='Python GLMsingle',
     url='https://github.com/kendrickkay/GLMsingle',
     long_description=long_description,
